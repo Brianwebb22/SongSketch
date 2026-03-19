@@ -75,31 +75,39 @@ export function SectionCard({
       <div
         class={`bg-surface-card rounded-xl transition-shadow ${isDragging ? 'shadow-lg shadow-accent/20 opacity-80' : ''}`}
       >
-        <button
-          onClick={onToggleExpand}
-          class="w-full flex items-center gap-3 p-4 text-left"
-        >
-          {/* Drag handle */}
-          <span
-            {...dragHandleProps}
-            class="text-text-muted hover:text-text-secondary cursor-grab active:cursor-grabbing select-none shrink-0"
-            onClick={(e) => e.stopPropagation()}
+        <div class="relative">
+          <button
+            onClick={onToggleExpand}
+            class="w-full flex items-start gap-3 p-4 pr-10 text-left"
           >
-            ⠿
-          </span>
-          <span class={`text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${colorClasses}`}>
-            {section.type}
-          </span>
-          <span class="text-sm font-medium text-text-primary truncate">
-            {section.label}
-          </span>
-          {section.chords.length > 0 && (
-            <span class="text-xs text-text-muted font-mono truncate ml-auto">
-              {chordPreview(section)}
+            {/* Drag handle */}
+            <span
+              {...dragHandleProps}
+              class="text-text-muted hover:text-text-secondary cursor-grab active:cursor-grabbing select-none shrink-0 mt-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              ⠿
             </span>
-          )}
-          <span class="text-text-muted shrink-0 ml-2">▸</span>
-        </button>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class={`text-xs font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${colorClasses}`}>
+                  {section.type}
+                </span>
+                <span class="text-sm font-medium text-text-primary truncate">
+                  {section.label}
+                </span>
+              </div>
+              {section.chords.length > 0 && (
+                <div class="text-xs text-text-muted font-mono mt-1 truncate">
+                  {chordPreview(section)}
+                </div>
+              )}
+            </div>
+          </button>
+          <span class="absolute top-4 right-3 text-text-muted pointer-events-none text-lg leading-none">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3l5 5-5 5z"/></svg>
+          </span>
+        </div>
       </div>
     );
   }
@@ -109,7 +117,7 @@ export function SectionCard({
       class={`bg-surface-card rounded-xl transition-shadow ${isDragging ? 'shadow-lg shadow-accent/20 opacity-80' : ''}`}
     >
       {/* Expanded header */}
-      <div class="flex items-center gap-3 p-4 pb-0">
+      <div class="relative flex items-center gap-3 p-4 pb-0 pr-10">
         <span
           {...dragHandleProps}
           class="text-text-muted hover:text-text-secondary cursor-grab active:cursor-grabbing select-none shrink-0"
@@ -121,10 +129,10 @@ export function SectionCard({
         </span>
         <button
           onClick={onToggleExpand}
-          class="ml-auto text-text-muted hover:text-text-secondary transition-colors"
+          class="absolute top-4 right-3 text-text-muted hover:text-text-secondary transition-colors"
           aria-label="Collapse section"
         >
-          ▾
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 6l5 5 5-5z"/></svg>
         </button>
       </div>
 

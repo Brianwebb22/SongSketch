@@ -64,7 +64,7 @@ export function MiniKeyboard({ notes, color, padding = 3 }: MiniKeyboardProps) {
   return (
     <div class="flex flex-col items-center">
       <div
-        style={{ width: totalWidth, height: whiteKeyHeight + 16, position: 'relative' }}
+        style={{ width: totalWidth, height: whiteKeyHeight + 22, position: 'relative' }}
       >
         {/* White keys */}
         {whiteKeys.map((k) => {
@@ -122,31 +122,46 @@ export function MiniKeyboard({ notes, color, padding = 3 }: MiniKeyboardProps) {
           );
         })}
 
-        {/* Note labels for pressed keys */}
-        {notes.map((midi) => {
-          const black = isBlackKey(midi);
-          let x: number;
-          if (black) {
-            const prevWhiteX = whiteKeyPositions.get(midi - 1);
-            const nextWhiteX = whiteKeyPositions.get(midi + 1);
-            if (prevWhiteX !== undefined && nextWhiteX !== undefined) {
-              x = (prevWhiteX + nextWhiteX) / 2 + wkw / 2;
-            } else if (prevWhiteX !== undefined) {
-              x = prevWhiteX + wkw - blackKeyWidth / 2 + blackKeyWidth / 2;
+        {/* Note labels for pressed keys — staggered to avoid overlap */}
+        {(() => {
+          const sorted = [...notes].sort((a, b) => a - b);
+          // Build label positions
+          const labels = sorted.map((midi) => {
+            const black = isBlackKey(midi);
+            let x: number;
+            if (black) {
+              const prevWhiteX = whiteKeyPositions.get(midi - 1);
+              const nextWhiteX = whiteKeyPositions.get(midi + 1);
+              if (prevWhiteX !== undefined && nextWhiteX !== undefined) {
+                x = (prevWhiteX + nextWhiteX) / 2 + wkw / 2;
+              } else if (prevWhiteX !== undefined) {
+                x = prevWhiteX + wkw - blackKeyWidth / 2 + blackKeyWidth / 2;
+              } else {
+                x = (whiteKeyPositions.get(midi + 1) ?? 0);
+              }
             } else {
-              x = (whiteKeyPositions.get(midi + 1) ?? 0);
+              x = (whiteKeyPositions.get(midi) ?? 0) + (wkw - 1) / 2;
             }
-          } else {
-            x = (whiteKeyPositions.get(midi) ?? 0) + (wkw - 1) / 2;
+            return { midi, x };
+          });
+
+          // Determine which labels need staggering (offset to second row)
+          // Two labels overlap if their x positions are within ~12px
+          const staggered = new Set<number>();
+          for (let i = 1; i < labels.length; i++) {
+            if (labels[i].x - labels[i - 1].x < 12) {
+              // Stagger the second one (push it down)
+              staggered.add(labels[i].midi);
+            }
           }
 
-          return (
+          return labels.map(({ midi, x }) => (
             <span
               key={`lbl-${midi}`}
               style={{
                 position: 'absolute',
                 left: x,
-                top: whiteKeyHeight + 2,
+                top: whiteKeyHeight + (staggered.has(midi) ? 10 : 2),
                 transform: 'translateX(-50%)',
                 fontSize: 8,
                 fontWeight: 700,
@@ -156,8 +171,8 @@ export function MiniKeyboard({ notes, color, padding = 3 }: MiniKeyboardProps) {
             >
               {NOTE_LABELS[midi % 12]}
             </span>
-          );
-        })}
+          ));
+        })()}
       </div>
     </div>
   );

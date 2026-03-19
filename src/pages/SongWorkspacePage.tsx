@@ -23,6 +23,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog.tsx';
 import { ChordInputPanel } from '../components/ChordInputPanel.tsx';
 import { KeyboardView } from '../components/KeyboardView.tsx';
 import { TapTempo } from '../components/TapTempo.tsx';
+import { AppFooter } from '../components/AppFooter.tsx';
 import type { Theme } from '../hooks/useTheme.ts';
 
 const KEY_OPTIONS = [
@@ -406,7 +407,8 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
     : null;
 
   return (
-    <div class="max-w-4xl mx-auto px-4 py-4">
+    <div class="min-h-screen flex flex-col">
+    <div class="flex-1 max-w-4xl mx-auto px-4 py-4 w-full">
       {/* Header */}
       <div class="flex items-center gap-3 mb-4 flex-wrap">
         <button
@@ -507,10 +509,20 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         {view === 'sections' && sortedSections.length > 0 && (
           <button
             onClick={toggleExpandAll}
-            class="text-sm text-text-muted hover:text-text-secondary transition-colors"
+            class="ml-auto text-sm text-text-muted hover:text-text-secondary transition-colors"
             title={allExpanded ? 'Collapse all' : 'Expand all'}
           >
-            {allExpanded ? '⟪ Collapse all' : '⟫ Expand all'}
+            {allExpanded ? (
+              <span class="flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 10l5-5 5 5z"/></svg>
+                Collapse all
+              </span>
+            ) : (
+              <span class="flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 6l5 5 5-5z"/></svg>
+                Expand all
+              </span>
+            )}
           </button>
         )}
 
@@ -619,6 +631,8 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         onConfirm={() => deleteTarget && deleteSection(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
+    </div>
+    <AppFooter />
     </div>
   );
 }

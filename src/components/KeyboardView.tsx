@@ -92,7 +92,7 @@ function ChordCard({ chord, lyricSnippet, onClick }: ChordCardProps) {
   return (
     <button
       onClick={onClick}
-      class="flex-shrink-0 w-[120px] sm:w-[150px] bg-surface-card hover:bg-surface-hover border border-surface-hover rounded-xl p-3 text-left transition-colors cursor-pointer"
+      class="flex-shrink-0 w-[120px] sm:w-[150px] bg-surface-card hover:bg-surface-hover border border-surface-hover rounded-xl p-3 text-left transition-colors cursor-pointer overflow-hidden"
     >
       {/* Chord name */}
       <div class="text-sm font-semibold text-text-primary font-mono text-center mb-2 truncate">
