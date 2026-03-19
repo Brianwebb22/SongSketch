@@ -37,6 +37,7 @@ export interface Song {
   sections: Section[];
   createdAt: string;   // ISO 8601
   updatedAt: string;   // ISO 8601
+  sortOrder?: number;   // Custom sort position for song list
 }
 
 // --- Database ---
@@ -47,6 +48,10 @@ const db = new Dexie('SongSketchDB') as Dexie & {
 
 db.version(1).stores({
   songs: 'id, title, updatedAt',
+});
+
+db.version(2).stores({
+  songs: 'id, title, updatedAt, sortOrder',
 });
 
 export { db };
