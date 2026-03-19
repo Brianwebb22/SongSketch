@@ -1,0 +1,22 @@
+{
+  "name": "SongSketch",
+  "short_name": "SongSketch",
+  "description": "A songwriter's workbench for documenting songs, identifying chords, and organizing song structures.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1e1e2e",
+  "theme_color": "#1e1e2e",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
