@@ -114,6 +114,7 @@ function SortableSection({
   onAddChord,
   onEditChord,
   onDeleteChord,
+  songKey,
 }: {
   section: Section;
   expanded: boolean;
@@ -124,6 +125,7 @@ function SortableSection({
   onAddChord: () => void;
   onEditChord: (chord: Chord) => void;
   onDeleteChord: (chordId: string) => void;
+  songKey: string | null;
 }) {
   const {
     attributes,
@@ -153,6 +155,7 @@ function SortableSection({
         onAddChord={onAddChord}
         onEditChord={onEditChord}
         onDeleteChord={onDeleteChord}
+        songKey={songKey}
         dragHandleProps={listeners}
         isDragging={isDragging}
       />
@@ -581,6 +584,7 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
                   onAddChord={() => openChordPanel(section.id)}
                   onEditChord={(chord) => openChordPanelForEdit(section.id, chord)}
                   onDeleteChord={(chordId) => deleteChordFromSection(section.id, chordId)}
+                  songKey={song.key}
                 />
               ))}
             </SortableContext>
@@ -617,6 +621,7 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
           onDeleteChord={(sectionId, chordId) => deleteChordFromSection(sectionId, chordId)}
           onAddSection={(type) => addSection(type)}
           onDeleteSection={(sectionId) => setDeleteTarget(sectionId)}
+          songKey={song.key}
         />
       )}
 

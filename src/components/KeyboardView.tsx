@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import type { Section, SectionType, Chord } from '../db.ts';
 import { MiniKeyboard } from './MiniKeyboard.tsx';
+import { getChordDegree } from '../utils/chordDegrees.ts';
 
 const SECTION_BORDER_COLORS: Record<SectionType, string> = {
   intro: '#9b7edb',
@@ -29,6 +30,7 @@ interface KeyboardViewProps {
   onDeleteChord: (sectionId: string, chordId: string) => void;
   onAddSection: (type: SectionType) => void;
   onDeleteSection: (sectionId: string) => void;
+  songKey: string | null;
 }
 
 export function KeyboardView({
@@ -38,6 +40,7 @@ export function KeyboardView({
   onDeleteChord,
   onAddSection,
   onDeleteSection,
+  songKey,
 }: KeyboardViewProps) {
   const sorted = [...sections].sort((a, b) => a.order - b.order);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -107,6 +110,7 @@ export function KeyboardView({
                   key={chord.id}
                   chord={chord}
                   lyricSnippet={getLyricSnippet(section.notes)}
+                  songKey={songKey}
                   onClick={() => onEditChord(section.id, chord)}
                   onDelete={() => onDeleteChord(section.id, chord.id)}
                 />
@@ -183,11 +187,13 @@ function getLyricSnippet(notes: string): string {
 interface ChordCardProps {
   chord: Chord;
   lyricSnippet: string;
+  songKey: string | null;
   onClick: () => void;
   onDelete: () => void;
 }
 
-function ChordCard({ chord, lyricSnippet, onClick, onDelete }: ChordCardProps) {
+function ChordCard({ chord, lyricSnippet, songKey, onClick, onDelete }: ChordCardProps) {
+  const degree = getChordDegree(chord.name, songKey);
   return (
     <div class="relative flex-shrink-0 w-[120px] sm:w-[150px] group/card">
       <button
@@ -205,8 +211,12 @@ function ChordCard({ chord, lyricSnippet, onClick, onDelete }: ChordCardProps) {
         onClick={onClick}
         class="w-full bg-surface-card hover:bg-surface-hover border border-surface-hover rounded-xl p-3 text-left transition-colors cursor-pointer overflow-hidden"
       >
+      {/* Chord degree */}
+      {degree && (
+        <div class="text-[10px] text-text-muted text-center mb-0.5 font-mono">{degree}</div>
+      )}
       {/* Chord name */}
-      <div class="text-sm font-semibold text-text-primary font-mono text-center mb-2 truncate">
+      <div class={`text-sm font-semibold text-text-primary font-mono text-center ${degree ? 'mb-1.5' : 'mb-2'} truncate`}>
         {chord.name || '?'}
       </div>
 
