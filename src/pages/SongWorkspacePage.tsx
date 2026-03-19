@@ -602,6 +602,10 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         <KeyboardView
           sections={sortedSections}
           onEditChord={(sectionId, chord) => openChordPanelForEdit(sectionId, chord)}
+          onAddChord={(sectionId) => openChordPanel(sectionId)}
+          onDeleteChord={(sectionId, chordId) => deleteChordFromSection(sectionId, chordId)}
+          onAddSection={(type) => addSection(type)}
+          onDeleteSection={(sectionId) => setDeleteTarget(sectionId)}
         />
       )}
 
