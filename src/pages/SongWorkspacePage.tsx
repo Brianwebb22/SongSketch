@@ -426,6 +426,17 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
             setSong((prev) => prev ? { ...prev, title } : prev);
             scheduleSave();
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === 'Escape') {
+              const input = e.target as HTMLInputElement;
+              const original = song.title || 'Untitled Song';
+              setSong((prev) => prev ? { ...prev, title: original } : prev);
+              input.value = original;
+              input.blur();
+            }
+          }}
           onBlur={(e) => {
             const title = (e.target as HTMLInputElement).value.trim();
             if (!title) {
