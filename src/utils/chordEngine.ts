@@ -335,6 +335,10 @@ export function parseChordName(name: string): ParsedChord | null {
   if (slashIdx > 0) {
     main = name.substring(0, slashIdx);
     bassNote = name.substring(slashIdx + 1);
+    // Normalize case: capitalize first letter (e.g. "ab" → "Ab", "c" → "C")
+    if (bassNote.length > 0) {
+      bassNote = bassNote[0].toUpperCase() + bassNote.slice(1);
+    }
     if (!(bassNote in NOTE_NAME_TO_PC)) return null;
   }
 
@@ -344,6 +348,11 @@ export function parseChordName(name: string): ParsedChord | null {
     root = main.substring(0, 2);
   } else if (main.length >= 1) {
     root = main[0];
+  }
+
+  // Normalize case: capitalize first letter (e.g. "c#" → "C#", "a" → "A")
+  if (root.length > 0) {
+    root = root[0].toUpperCase() + root.slice(1);
   }
 
   if (!(root in NOTE_NAME_TO_PC)) return null;

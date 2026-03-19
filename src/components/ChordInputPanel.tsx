@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { PianoKeyboard } from './PianoKeyboard.tsx';
+import { MiniKeyboard } from './MiniKeyboard.tsx';
 import {
   identifyChord,
   searchChords,
@@ -32,15 +33,19 @@ export function ChordInputPanel({
   const [typeQuery, setTypeQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const typeInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Track last identification name to sync to typeQuery
+  const lastIdentNameRef = useRef<string>('');
 
   // Load editing chord data
   useEffect(() => {
     if (editingChord) {
       setBassNotes([...editingChord.bass]);
       setVoicingNotes([...editingChord.voicing]);
-      setTypeQuery('');
+      setTypeQuery(editingChord.name || '');
     }
   }, [editingChord]);
 
@@ -52,6 +57,7 @@ export function ChordInputPanel({
       setTypeQuery('');
       setSuggestions([]);
       setActiveLayer('voicing');
+      lastIdentNameRef.current = '';
     }
   }, [open]);
 
@@ -69,13 +75,30 @@ export function ChordInputPanel({
 
   const identification = identifyChord(voicingNotes, bassNotes);
 
-  function handleClear() {
+  // Sync: when piano identification changes, update typeQuery
+  const identName = identification?.name || '';
+  if (identName !== lastIdentNameRef.current) {
+    lastIdentNameRef.current = identName;
+    if (identName) {
+      // Only auto-sync if there are notes selected (not on clear)
+      if (voicingNotes.length > 0 || bassNotes.length > 0) {
+        // Use a microtask to avoid setting state during render
+        Promise.resolve().then(() => setTypeQuery(identName));
+      }
+    }
+  }
+
+  function handleClearAll() {
     setBassNotes([]);
     setVoicingNotes([]);
+    setTypeQuery('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    lastIdentNameRef.current = '';
   }
 
   function handleAddToSection() {
-    const name = identification?.name || 'Unknown';
+    const name = identification?.name || typeQuery.trim() || 'Unknown';
 
     if (editingChord && onUpdateChord) {
       onUpdateChord({
@@ -92,8 +115,19 @@ export function ChordInputPanel({
       });
     }
 
-    handleClear();
+    handleClearAll();
     onClose();
+  }
+
+  function updateDropdownPos() {
+    if (typeInputRef.current) {
+      const rect = typeInputRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
   }
 
   // Type tab: handle query change
@@ -102,6 +136,7 @@ export function ChordInputPanel({
     if (value.trim()) {
       setSuggestions(searchChords(value));
       setShowSuggestions(true);
+      updateDropdownPos();
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -111,8 +146,9 @@ export function ChordInputPanel({
   function selectChordFromType(chordName: string) {
     setTypeQuery(chordName);
     setShowSuggestions(false);
+    lastIdentNameRef.current = chordName;
 
-    // Generate voicing and show on piano
+    // Generate voicing and update piano state
     const voicingData = generateDefaultVoicing(chordName);
     if (voicingData) {
       setVoicingNotes(voicingData.voicing);
@@ -124,24 +160,31 @@ export function ChordInputPanel({
     const name = typeQuery.trim();
     if (!name) return;
 
-    const voicingData = generateDefaultVoicing(name);
-    if (voicingData) {
+    // If we have notes from piano (synced state), use those
+    if (voicingNotes.length > 0 || bassNotes.length > 0) {
       onAddChord({
         name,
-        voicing: voicingData.voicing,
-        bass: voicingData.bass,
+        voicing: [...voicingNotes],
+        bass: [...bassNotes],
       });
     } else {
-      // Custom chord name — add with empty voicing
-      onAddChord({
-        name,
-        voicing: [],
-        bass: [],
-      });
+      const voicingData = generateDefaultVoicing(name);
+      if (voicingData) {
+        onAddChord({
+          name,
+          voicing: voicingData.voicing,
+          bass: voicingData.bass,
+        });
+      } else {
+        onAddChord({
+          name,
+          voicing: [],
+          bass: [],
+        });
+      }
     }
 
-    setTypeQuery('');
-    setSuggestions([]);
+    handleClearAll();
     onClose();
   }
 
@@ -168,6 +211,25 @@ export function ChordInputPanel({
     ...bassNotes.map((n) => ({ note: midiToDisplayName(n), type: 'bass' as const })),
     ...voicingNotes.map((n) => ({ note: midiToDisplayName(n), type: 'voicing' as const })),
   ];
+
+  // For Type tab visualization, use current shared note state if available, else generate from query
+  const typeVoicingData = (() => {
+    if (voicingNotes.length > 0 || bassNotes.length > 0) {
+      return { voicing: voicingNotes, bass: bassNotes };
+    }
+    if (typeQuery.trim()) {
+      return generateDefaultVoicing(typeQuery.trim());
+    }
+    return null;
+  })();
+
+  const typeIdentification = (() => {
+    if (identification) return identification;
+    if (typeQuery.trim() && typeVoicingData) {
+      return identifyChord(typeVoicingData.voicing, typeVoicingData.bass);
+    }
+    return null;
+  })();
 
   return (
     <div class="fixed bottom-0 left-0 right-0 z-30 bg-surface-card border-t border-surface-hover shadow-2xl max-h-[70vh] overflow-y-auto md:relative md:mt-4 md:rounded-xl md:border md:shadow-none md:max-h-none">
@@ -231,7 +293,7 @@ export function ChordInputPanel({
               </button>
               <div class="flex-1" />
               <button
-                onClick={handleClear}
+                onClick={handleClearAll}
                 class="text-sm text-text-muted hover:text-text-secondary transition-colors"
               >
                 Clear
@@ -298,24 +360,42 @@ export function ChordInputPanel({
           /* Type tab */
           <>
             <div class="relative mb-3">
-              <input
-                ref={typeInputRef}
-                type="text"
-                value={typeQuery}
-                onInput={(e) => handleTypeInput((e.target as HTMLInputElement).value)}
-                onFocus={() => {
-                  if (typeQuery.trim()) {
-                    setSuggestions(searchChords(typeQuery));
-                    setShowSuggestions(true);
-                  }
-                }}
-                placeholder="Type a chord name... (e.g. Cmaj7, Dm/A)"
-                class="w-full bg-surface-hover text-text-primary text-sm px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-accent font-mono"
-              />
-              {showSuggestions && suggestions.length > 0 && (
+              <div class="flex gap-2">
+                <input
+                  ref={typeInputRef}
+                  type="text"
+                  value={typeQuery}
+                  onInput={(e) => handleTypeInput((e.target as HTMLInputElement).value)}
+                  onFocus={() => {
+                    if (typeQuery.trim()) {
+                      setSuggestions(searchChords(typeQuery));
+                      setShowSuggestions(true);
+                      updateDropdownPos();
+                    }
+                  }}
+                  placeholder="Type a chord name... (e.g. Cmaj7, Dm/A)"
+                  class="flex-1 bg-surface-hover text-text-primary text-sm px-4 py-3 rounded-xl outline-none focus:ring-1 focus:ring-accent font-mono"
+                />
+                {(typeQuery.trim() || voicingNotes.length > 0 || bassNotes.length > 0) && (
+                  <button
+                    onClick={handleClearAll}
+                    class="text-sm text-text-muted hover:text-text-secondary transition-colors px-2 shrink-0"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {showSuggestions && suggestions.length > 0 && dropdownPos && (
                 <div
                   ref={suggestionsRef}
-                  class="absolute left-0 right-0 bottom-full mb-1 bg-surface-card border border-surface-hover rounded-xl shadow-lg max-h-48 overflow-y-auto z-20"
+                  class="bg-surface-card border border-surface-hover rounded-xl shadow-lg max-h-48 overflow-y-auto"
+                  style={{
+                    position: 'fixed',
+                    top: dropdownPos.top,
+                    left: dropdownPos.left,
+                    width: dropdownPos.width,
+                    zIndex: 9999,
+                  }}
                 >
                   {suggestions.map((chord) => (
                     <button
@@ -330,33 +410,42 @@ export function ChordInputPanel({
               )}
             </div>
 
-            {/* Show chord details if we have a valid chord typed/selected */}
-            {typeQuery.trim() && (() => {
-              const voicingData = generateDefaultVoicing(typeQuery.trim());
-              if (!voicingData) return null;
-              const id = identifyChord(voicingData.voicing, voicingData.bass);
-              if (!id) return null;
-              return (
-                <div class="p-3 bg-surface rounded-xl mb-3">
-                  <div class="text-2xl font-bold font-mono text-text-primary">
-                    {id.name}
-                  </div>
-                  <div class="text-sm text-accent font-mono mt-1">
-                    {id.intervals}
-                  </div>
-                  <div class="text-sm text-text-secondary mt-1">
-                    {id.description}
-                  </div>
+            {/* Show chord details + piano visualization */}
+            {typeIdentification && typeVoicingData && (
+              <div class="p-3 bg-surface rounded-xl mb-3">
+                <div class="text-2xl font-bold font-mono text-text-primary">
+                  {typeIdentification.name}
                 </div>
-              );
-            })()}
+                <div class="text-sm text-accent font-mono mt-1">
+                  {typeIdentification.intervals}
+                </div>
+                <div class="text-sm text-text-secondary mt-1">
+                  {typeIdentification.description}
+                </div>
+                {/* Mini piano visualization */}
+                <div class="mt-3 space-y-1">
+                  {typeVoicingData.voicing.length > 0 && (
+                    <div>
+                      <div class="text-[10px] text-accent font-medium mb-0.5">Voicing</div>
+                      <MiniKeyboard notes={typeVoicingData.voicing} color="#7289DA" padding={2} />
+                    </div>
+                  )}
+                  {typeVoicingData.bass.length > 0 && (
+                    <div>
+                      <div class="text-[10px] text-coral font-medium mb-0.5">Bass</div>
+                      <MiniKeyboard notes={typeVoicingData.bass} color="#D85A30" padding={2} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleTypeAdd}
               disabled={!typeQuery.trim()}
               class="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-colors"
             >
-              Add to Section
+              {editingChord ? 'Update Chord' : 'Add to Section'}
             </button>
           </>
         )}

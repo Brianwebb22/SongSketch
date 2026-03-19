@@ -452,7 +452,6 @@ App
 23. Auto-save indicator
 24. Empty states and onboarding hints
 25. PWA setup — service worker via Vite PWA plugin, app manifest, icons, offline caching
-26. Edit song title
 
 ---
 
@@ -476,9 +475,15 @@ App
 - Melody tracking — a way to document melodies alongside chords, potentially via piano roll input, audio humming, or a simplified notation. Would tie into Tone.js for playback.
 - Sharing and exporting — export songs as PDF chord charts, MIDI files, MusicXML, or shareable links. Could also include printing support for the Sheet view.
 - Time signatures — support for time signatures beyond the implied 4/4 (e.g. 3/4, 6/8, 7/8). Would affect how sections are counted, how the metronome works, and how chord durations are displayed.
-- Playwright testing
 
 All of the above are candidates for v2+.
+
+**Additional v2+ backlog (from user testing):**
+- Song list view toggle — option to switch between card grid and a list/table view showing more details (created date, last edited, section count, etc.)
+- Keyboard view lyric display — better handling of how lyrics appear with mini keyboard chord cards (current truncation may not be ideal)
+- Auto-detect song key — a "detect" option in the Key Selector that analyzes all chords in the song to infer the most likely key. Could use frequency analysis of pitch classes and common key signatures.
+- Quick tools section — a "Tools" tab or floating panel with quick access to chord finder, tap tempo, and other utilities without needing to be inside a specific song/section
+- Song notepad / scratchpad — a freeform notes area in the song workspace (separate from section notes) for dumping ideas, inspiration, and rough thoughts. Eventually could have a way to pull content from the notepad into sections or vice versa.
 
 **Workspace Views (v2+ planning note):** V1 ships with Sections view and Keyboard view. Future versions should add: a "Sheet" view that lays out the song like a printed chord chart (chords above lyrics, sections flowing naturally), a "Performance" view (simplified, large text, auto-scrolling at BPM for playing live), and potentially a "Timeline" view. The view switcher is already in place from v1.
 
