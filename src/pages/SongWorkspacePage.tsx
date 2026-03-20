@@ -636,6 +636,17 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         onAddChord={addChordToSection}
         editingChord={editingChord}
         onUpdateChord={updateChordInSection}
+        songKey={song.key}
+        sectionChords={chordPanelSectionId ? (song.sections.find(s => s.id === chordPanelSectionId)?.chords ?? []) : []}
+        sameTypeChords={(() => {
+          if (!chordPanelSectionId) return [];
+          const current = song.sections.find(s => s.id === chordPanelSectionId);
+          if (!current) return [];
+          return song.sections
+            .filter(s => s.id !== chordPanelSectionId && s.type === current.type)
+            .flatMap(s => s.chords);
+        })()}
+        allSongChords={song.sections.flatMap(s => s.chords)}
       />
 
       {/* Delete confirmation dialog */}
