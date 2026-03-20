@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'preact/hooks';
 import { PianoKeyboard } from './PianoKeyboard.tsx';
 import { MiniKeyboard } from './MiniKeyboard.tsx';
 import {
@@ -7,6 +7,7 @@ import {
   generateDefaultVoicing,
   midiToDisplayName,
 } from '../utils/chordEngine.ts';
+import { suggestNextChords, type ChordSuggestion } from '../utils/chordSuggest.ts';
 import type { Chord } from '../db.ts';
 
 interface ChordInputPanelProps {
@@ -15,6 +16,10 @@ interface ChordInputPanelProps {
   onAddChord: (chord: Omit<Chord, 'id' | 'order'>) => void;
   editingChord?: Chord | null;  // pre-load for editing
   onUpdateChord?: (chord: Chord) => void;
+  songKey?: string | null;
+  sectionChords?: Chord[];
+  sameTypeChords?: Chord[];     // chords from other sections of the same type
+  allSongChords?: Chord[];
 }
 
 export function ChordInputPanel({
@@ -23,13 +28,20 @@ export function ChordInputPanel({
   onAddChord,
   editingChord,
   onUpdateChord,
+  songKey = null,
+  sectionChords = [],
+  sameTypeChords = [],
+  allSongChords = [],
 }: ChordInputPanelProps) {
-  const [tab, setTab] = useState<'piano' | 'type'>('piano');
+  const [tab, setTab] = useState<'piano' | 'search' | 'suggest'>('piano');
   const [activeLayer, setActiveLayer] = useState<'bass' | 'voicing'>('voicing');
   const [bassNotes, setBassNotes] = useState<number[]>([]);
   const [voicingNotes, setVoicingNotes] = useState<number[]>([]);
 
-  // Type tab state
+  // Suggest tab view toggle
+  const [suggestView, setSuggestView] = useState<'grid' | 'list'>('grid');
+
+  // Search tab state
   const [typeQuery, setTypeQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -130,7 +142,7 @@ export function ChordInputPanel({
     }
   }
 
-  // Type tab: handle query change
+  // Search tab: handle query change
   function handleTypeInput(value: string) {
     setTypeQuery(value);
     if (value.trim()) {
@@ -188,6 +200,64 @@ export function ChordInputPanel({
     onClose();
   }
 
+  // Suggest tab: load suggestion into Piano tab
+  function handleLoadSuggestion(suggestion: ChordSuggestion) {
+    setVoicingNotes(suggestion.defaultVoicing);
+    setBassNotes(suggestion.defaultBass);
+    setTypeQuery(suggestion.chordName);
+    lastIdentNameRef.current = suggestion.chordName;
+    setTab('piano');
+  }
+
+  // Suggest tab: add chord directly
+  function handleAddSuggestion(suggestion: ChordSuggestion) {
+    onAddChord({
+      name: suggestion.chordName,
+      voicing: suggestion.defaultVoicing,
+      bass: suggestion.defaultBass,
+    });
+  }
+
+  // Compute chord suggestions
+  const chordSuggestions = useMemo(() => {
+    if (!open || tab !== 'suggest') return [];
+    return suggestNextChords({
+      songKey,
+      sectionChords,
+      allSongChords,
+      count: 5,
+    });
+  }, [open, tab, songKey, sectionChords, allSongChords]);
+
+  // Context pills: weighted deduplication of existing chords
+  const contextPills = useMemo(() => {
+    if (!open || tab !== 'suggest') return [];
+    const seen = new Set<string>();
+    const pills: Chord[] = [];
+    // Priority 1: current section chords
+    for (const c of sectionChords) {
+      if (!seen.has(c.name)) { seen.add(c.name); pills.push(c); }
+    }
+    // Priority 2: same section type chords
+    for (const c of sameTypeChords) {
+      if (!seen.has(c.name)) { seen.add(c.name); pills.push(c); }
+    }
+    // Priority 3: all other song chords
+    for (const c of allSongChords) {
+      if (!seen.has(c.name)) { seen.add(c.name); pills.push(c); }
+    }
+    return pills.slice(0, 5);
+  }, [open, tab, sectionChords, sameTypeChords, allSongChords]);
+
+  // Load a pill chord into Piano tab for preview
+  function handleLoadPill(chord: Chord) {
+    setVoicingNotes([...chord.voicing]);
+    setBassNotes([...chord.bass]);
+    setTypeQuery(chord.name);
+    lastIdentNameRef.current = chord.name;
+    setTab('piano');
+  }
+
   // Close suggestions on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -212,7 +282,7 @@ export function ChordInputPanel({
     ...voicingNotes.map((n) => ({ note: midiToDisplayName(n), type: 'voicing' as const })),
   ];
 
-  // For Type tab visualization, use current shared note state if available, else generate from query
+  // For Search tab visualization, use current shared note state if available, else generate from query
   const typeVoicingData = (() => {
     if (voicingNotes.length > 0 || bassNotes.length > 0) {
       return { voicing: voicingNotes, bass: bassNotes };
@@ -247,14 +317,24 @@ export function ChordInputPanel({
             Piano
           </button>
           <button
-            onClick={() => setTab('type')}
+            onClick={() => setTab('search')}
             class={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-              tab === 'type'
+              tab === 'search'
                 ? 'bg-accent text-white'
                 : 'text-text-secondary hover:text-text-primary'
             }`}
           >
-            Type
+            Search
+          </button>
+          <button
+            onClick={() => setTab('suggest')}
+            class={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              tab === 'suggest'
+                ? 'bg-accent text-white'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Suggest
           </button>
         </div>
         <button
@@ -356,8 +436,8 @@ export function ChordInputPanel({
               {editingChord ? 'Update Chord' : 'Add to Section'}
             </button>
           </>
-        ) : (
-          /* Type tab */
+        ) : tab === 'search' ? (
+          /* Search tab */
           <>
             <div class="relative mb-3">
               <div class="flex gap-2">
@@ -447,6 +527,159 @@ export function ChordInputPanel({
             >
               {editingChord ? 'Update Chord' : 'Add to Section'}
             </button>
+          </>
+        ) : (
+          /* Suggest tab */
+          <>
+            {/* Context pills + view toggle */}
+            <div class="flex items-center gap-2 mb-2">
+              {/* Context pills */}
+              {contextPills.length > 0 && (
+                <div class="flex gap-1.5 overflow-x-auto min-w-0 flex-1">
+                  {contextPills.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleLoadPill(c)}
+                      class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-mono text-text-muted bg-surface-hover hover:text-text-secondary hover:bg-surface-hover/80 transition-colors border border-surface-hover"
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!contextPills.length && <div class="flex-1" />}
+              <div class="flex gap-0.5 bg-surface rounded-lg p-0.5 shrink-0">
+                <button
+                  onClick={() => setSuggestView('grid')}
+                  class={`p-1.5 rounded-md transition-colors ${
+                    suggestView === 'grid'
+                      ? 'bg-surface-hover text-text-primary'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                  aria-label="Grid view"
+                  title="Grid view"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="1" width="6" height="6" rx="1" />
+                    <rect x="9" y="1" width="6" height="6" rx="1" />
+                    <rect x="1" y="9" width="6" height="6" rx="1" />
+                    <rect x="9" y="9" width="6" height="6" rx="1" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setSuggestView('list')}
+                  class={`p-1.5 rounded-md transition-colors ${
+                    suggestView === 'list'
+                      ? 'bg-surface-hover text-text-primary'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                  aria-label="List view"
+                  title="List view"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="1" y="1.5" width="14" height="3" rx="1" />
+                    <rect x="1" y="6.5" width="14" height="3" rx="1" />
+                    <rect x="1" y="11.5" width="14" height="3" rx="1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {chordSuggestions.length > 0 ? (
+              suggestView === 'grid' ? (
+                /* Grid view */
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {chordSuggestions.map((s) => (
+                    <div
+                      key={s.chordName}
+                      class="p-2.5 bg-surface rounded-xl border border-surface-hover hover:border-accent/30 transition-colors flex flex-col"
+                    >
+                      <button
+                        onClick={() => handleLoadSuggestion(s)}
+                        class="flex-1 text-left min-w-0"
+                      >
+                        <div class="flex items-baseline gap-1.5">
+                          <span class="text-lg font-bold font-mono text-text-primary">
+                            {s.chordName}
+                          </span>
+                          {s.degree && (
+                            <span class="text-xs font-mono text-accent">
+                              {s.degree}
+                            </span>
+                          )}
+                        </div>
+                        <div class="text-[10px] text-text-muted mt-0.5">
+                          {s.mood}
+                        </div>
+                        {/* Mini keyboard previews */}
+                        <div class="mt-2 space-y-1">
+                          {s.defaultVoicing.length > 0 && (
+                            <MiniKeyboard notes={s.defaultVoicing} color="#7289DA" padding={1} />
+                          )}
+                          {s.defaultBass.length > 0 && (
+                            <MiniKeyboard notes={s.defaultBass} color="#D85A30" padding={1} />
+                          )}
+                        </div>
+                        <div class="text-[10px] text-text-secondary italic mt-1.5 line-clamp-2">
+                          {s.reason}
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => handleAddSuggestion(s)}
+                        class="w-full mt-2 px-2 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-medium transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* List view */
+                <div class="space-y-2">
+                  {chordSuggestions.map((s) => (
+                    <div
+                      key={s.chordName}
+                      class="p-3 bg-surface rounded-xl border border-surface-hover hover:border-accent/30 transition-colors"
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <button
+                          onClick={() => handleLoadSuggestion(s)}
+                          class="flex-1 text-left min-w-0"
+                        >
+                          <div class="flex items-baseline gap-2">
+                            <span class="text-xl font-bold font-mono text-text-primary">
+                              {s.chordName}
+                            </span>
+                            {s.degree && (
+                              <span class="text-sm font-mono text-accent">
+                                {s.degree}
+                              </span>
+                            )}
+                          </div>
+                          <div class="text-xs text-text-muted mt-0.5">
+                            {s.mood}
+                          </div>
+                          <div class="text-xs text-text-secondary italic mt-0.5">
+                            {s.reason}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handleAddSuggestion(s)}
+                          class="shrink-0 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-medium transition-colors"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div class="text-center text-text-muted py-8">
+                <p class="text-sm">No suggestions available.</p>
+                <p class="text-xs mt-1">Try setting a song key or adding chords to get started.</p>
+              </div>
+            )}
           </>
         )}
       </div>
