@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { Section, SectionType, Chord } from '../db.ts';
+import { getChordDegree } from '../utils/chordDegrees.ts';
 
 const SECTION_COLORS: Record<SectionType, string> = {
   intro: 'bg-section-intro/20 text-section-intro',
@@ -31,6 +32,7 @@ interface SectionCardProps {
   onAddChord: () => void;
   onEditChord: (chord: Chord) => void;
   onDeleteChord: (chordId: string) => void;
+  songKey: string | null;
   dragHandleProps?: Record<string, unknown>;
   isDragging?: boolean;
 }
@@ -52,6 +54,7 @@ export function SectionCard({
   onAddChord,
   onEditChord,
   onDeleteChord,
+  songKey,
   dragHandleProps,
   isDragging,
 }: SectionCardProps) {
@@ -162,12 +165,17 @@ export function SectionCard({
         {/* Chord progression row */}
         <div class="flex flex-wrap gap-2 min-h-[32px] items-center">
           {section.chords.length > 0 ? (
-            section.chords.map((chord) => (
+            section.chords.map((chord) => {
+              const degree = getChordDegree(chord.name, songKey);
+              return (
               <span
                 key={chord.id}
                 class="group relative bg-surface-hover text-text-primary text-sm px-2.5 py-1 rounded-lg font-mono cursor-pointer hover:bg-accent/20 hover:text-accent transition-colors"
                 onClick={() => onEditChord(chord)}
               >
+                {degree && (
+                  <span class="block text-[10px] text-text-muted leading-tight -mb-0.5">{degree}</span>
+                )}
                 {chord.name}
                 <button
                   onClick={(e) => {
@@ -180,7 +188,8 @@ export function SectionCard({
                   ×
                 </button>
               </span>
-            ))
+              );
+            })
           ) : (
             <span class="text-sm text-text-muted italic">Add your first chord</span>
           )}

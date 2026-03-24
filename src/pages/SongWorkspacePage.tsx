@@ -114,6 +114,7 @@ function SortableSection({
   onAddChord,
   onEditChord,
   onDeleteChord,
+  songKey,
 }: {
   section: Section;
   expanded: boolean;
@@ -124,6 +125,7 @@ function SortableSection({
   onAddChord: () => void;
   onEditChord: (chord: Chord) => void;
   onDeleteChord: (chordId: string) => void;
+  songKey: string | null;
 }) {
   const {
     attributes,
@@ -153,6 +155,7 @@ function SortableSection({
         onAddChord={onAddChord}
         onEditChord={onEditChord}
         onDeleteChord={onDeleteChord}
+        songKey={songKey}
         dragHandleProps={listeners}
         isDragging={isDragging}
       />
@@ -426,6 +429,17 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
             setSong((prev) => prev ? { ...prev, title } : prev);
             scheduleSave();
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === 'Escape') {
+              const input = e.target as HTMLInputElement;
+              const original = song.title || 'Untitled Song';
+              setSong((prev) => prev ? { ...prev, title: original } : prev);
+              input.value = original;
+              input.blur();
+            }
+          }}
           onBlur={(e) => {
             const title = (e.target as HTMLInputElement).value.trim();
             if (!title) {
@@ -570,6 +584,7 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
                   onAddChord={() => openChordPanel(section.id)}
                   onEditChord={(chord) => openChordPanelForEdit(section.id, chord)}
                   onDeleteChord={(chordId) => deleteChordFromSection(section.id, chordId)}
+                  songKey={song.key}
                 />
               ))}
             </SortableContext>
@@ -602,6 +617,11 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         <KeyboardView
           sections={sortedSections}
           onEditChord={(sectionId, chord) => openChordPanelForEdit(sectionId, chord)}
+          onAddChord={(sectionId) => openChordPanel(sectionId)}
+          onDeleteChord={(sectionId, chordId) => deleteChordFromSection(sectionId, chordId)}
+          onAddSection={(type) => addSection(type)}
+          onDeleteSection={(sectionId) => setDeleteTarget(sectionId)}
+          songKey={song.key}
         />
       )}
 
@@ -616,6 +636,17 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
         onAddChord={addChordToSection}
         editingChord={editingChord}
         onUpdateChord={updateChordInSection}
+        songKey={song.key}
+        sectionChords={chordPanelSectionId ? (song.sections.find(s => s.id === chordPanelSectionId)?.chords ?? []) : []}
+        sameTypeChords={(() => {
+          if (!chordPanelSectionId) return [];
+          const current = song.sections.find(s => s.id === chordPanelSectionId);
+          if (!current) return [];
+          return song.sections
+            .filter(s => s.id !== chordPanelSectionId && s.type === current.type)
+            .flatMap(s => s.chords);
+        })()}
+        allSongChords={song.sections.flatMap(s => s.chords)}
       />
 
       {/* Delete confirmation dialog */}
