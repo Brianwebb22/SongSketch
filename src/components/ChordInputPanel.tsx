@@ -7,6 +7,7 @@ import {
   generateDefaultVoicing,
   midiToDisplayName,
 } from '../utils/chordEngine.ts';
+import { generateVoicings, type ChordVoicing } from '../utils/chordVoicings.ts';
 import { suggestNextChords, type ChordSuggestion } from '../utils/chordSuggest.ts';
 import type { Chord } from '../db.ts';
 
@@ -46,6 +47,10 @@ export function ChordInputPanel({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [voicingIndex, setVoicingIndex] = useState(0);
+  const [voicingList, setVoicingList] = useState<ChordVoicing[]>([]);
+  // Track whether the user has manually built notes on the Piano tab (don't override)
+  const manualPianoRef = useRef(false);
   const typeInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -70,10 +75,14 @@ export function ChordInputPanel({
       setSuggestions([]);
       setActiveLayer('voicing');
       lastIdentNameRef.current = '';
+      setVoicingIndex(0);
+      setVoicingList([]);
+      manualPianoRef.current = false;
     }
   }, [open]);
 
   const handleToggleNote = useCallback((midi: number) => {
+    manualPianoRef.current = true;
     if (activeLayer === 'bass') {
       setBassNotes((prev) =>
         prev.includes(midi) ? prev.filter((n) => n !== midi) : [...prev, midi],
@@ -107,6 +116,9 @@ export function ChordInputPanel({
     setSuggestions([]);
     setShowSuggestions(false);
     lastIdentNameRef.current = '';
+    setVoicingIndex(0);
+    setVoicingList([]);
+    manualPianoRef.current = false;
   }
 
   function handleAddToSection() {
@@ -159,13 +171,35 @@ export function ChordInputPanel({
     setTypeQuery(chordName);
     setShowSuggestions(false);
     lastIdentNameRef.current = chordName;
+    manualPianoRef.current = false;
 
-    // Generate voicing and update piano state
-    const voicingData = generateDefaultVoicing(chordName);
-    if (voicingData) {
-      setVoicingNotes(voicingData.voicing);
-      setBassNotes(voicingData.bass);
+    // Generate all voicings
+    const allVoicings = generateVoicings(chordName);
+    setVoicingList(allVoicings);
+    setVoicingIndex(0);
+
+    // Apply first voicing (root position) to shared state
+    if (allVoicings.length > 0) {
+      setVoicingNotes(allVoicings[0].voicing);
+      setBassNotes(allVoicings[0].bass);
+    } else {
+      // Fallback to default generation
+      const voicingData = generateDefaultVoicing(chordName);
+      if (voicingData) {
+        setVoicingNotes(voicingData.voicing);
+        setBassNotes(voicingData.bass);
+      }
     }
+  }
+
+  function handleVoicingNav(direction: -1 | 1) {
+    if (voicingList.length === 0) return;
+    const newIndex = (voicingIndex + direction + voicingList.length) % voicingList.length;
+    setVoicingIndex(newIndex);
+    const v = voicingList[newIndex];
+    setVoicingNotes(v.voicing);
+    setBassNotes(v.bass);
+    manualPianoRef.current = false;
   }
 
   function handleTypeAdd() {
@@ -517,6 +551,37 @@ export function ChordInputPanel({
                     </div>
                   )}
                 </div>
+                {/* Voicing navigator */}
+                {voicingList.length > 1 && (
+                  <div class="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => handleVoicingNav(-1)}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover hover:bg-surface-hover/80 text-text-secondary hover:text-text-primary transition-colors"
+                      aria-label="Previous voicing"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M10.5 3L5.5 8l5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                    <div class="flex-1 text-center">
+                      <div class="text-sm font-medium text-text-primary">
+                        {voicingList[voicingIndex]?.label || 'Root position'}
+                      </div>
+                      <div class="text-[10px] text-text-muted">
+                        {voicingIndex + 1} of {voicingList.length}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleVoicingNav(1)}
+                      class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-hover hover:bg-surface-hover/80 text-text-secondary hover:text-text-primary transition-colors"
+                      aria-label="Next voicing"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5.5 3L10.5 8l-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
