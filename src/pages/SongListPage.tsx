@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { navigate } from '../app.tsx';
 import { db } from '../db.ts';
 import type { Song, Section } from '../db.ts';
+import { SAMPLE_SONG_ID } from '../data/sampleSong.ts';
 import type { Theme } from '../hooks/useTheme.ts';
 import { AppFooter } from '../components/AppFooter.tsx';
 import {
@@ -168,7 +169,14 @@ function SortableGridCard({ song, onDelete, dragEnabled }: {
           onClick={() => navigate(`/song/${song.id}`)}
           class="flex-1 text-left min-w-0"
         >
-          <h3 class="font-medium text-text-primary truncate">{song.title}</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="font-medium text-text-primary truncate">{song.title}</h3>
+            {song.id === SAMPLE_SONG_ID && (
+              <span class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">
+                Demo
+              </span>
+            )}
+          </div>
           <div class="flex gap-2 mt-1 text-sm text-text-secondary">
             {song.key && <span>{song.key}</span>}
             {song.bpm && <span>{song.bpm} BPM</span>}
@@ -249,7 +257,14 @@ function SortableListRow({ song, onDelete, dragEnabled }: {
           {/* Mobile layout */}
           <div class="sm:hidden">
             <div class="flex items-center justify-between">
-              <h3 class="font-medium text-text-primary truncate">{song.title}</h3>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <h3 class="font-medium text-text-primary truncate">{song.title}</h3>
+                {song.id === SAMPLE_SONG_ID && (
+                  <span class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">
+                    Demo
+                  </span>
+                )}
+              </div>
               <span class="text-xs text-text-muted ml-2 shrink-0">{timeAgo(song.updatedAt)}</span>
             </div>
             {song.key && (
@@ -257,7 +272,14 @@ function SortableListRow({ song, onDelete, dragEnabled }: {
             )}
           </div>
           {/* Desktop layout */}
-          <span class="hidden sm:block font-medium text-text-primary truncate">{song.title}</span>
+          <span class="hidden sm:flex sm:items-center sm:gap-1.5 font-medium text-text-primary truncate">
+            {song.title}
+            {song.id === SAMPLE_SONG_ID && (
+              <span class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">
+                Demo
+              </span>
+            )}
+          </span>
           <span class="hidden sm:block text-sm text-text-secondary">{song.key || '--'}</span>
           <span class="hidden sm:block text-sm text-text-secondary">{song.bpm || '--'}</span>
           <span class="hidden sm:block text-sm text-text-secondary">{song.sections.length}</span>
