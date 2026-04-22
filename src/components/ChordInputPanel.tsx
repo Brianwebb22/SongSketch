@@ -21,6 +21,7 @@ interface ChordInputPanelProps {
   sectionChords?: Chord[];
   sameTypeChords?: Chord[];     // chords from other sections of the same type
   allSongChords?: Chord[];
+  inline?: boolean;             // render inline (non-fixed) beneath a section
 }
 
 export function ChordInputPanel({
@@ -33,6 +34,7 @@ export function ChordInputPanel({
   sectionChords = [],
   sameTypeChords = [],
   allSongChords = [],
+  inline = false,
 }: ChordInputPanelProps) {
   const [tab, setTab] = useState<'piano' | 'search' | 'suggest'>('piano');
   const [activeLayer, setActiveLayer] = useState<'bass' | 'voicing'>('voicing');
@@ -336,7 +338,10 @@ export function ChordInputPanel({
   })();
 
   return (
-    <div class="fixed bottom-0 left-0 right-0 z-30 bg-surface-card border-t border-surface-hover shadow-2xl max-h-[70vh] overflow-y-auto md:relative md:mt-4 md:rounded-xl md:border md:shadow-none md:max-h-none">
+    <div class={inline
+      ? "bg-surface-card rounded-xl border border-surface-hover shadow-lg mt-3 max-h-[70vh] overflow-y-auto"
+      : "fixed bottom-0 left-0 right-0 z-30 bg-surface-card border-t border-surface-hover shadow-2xl max-h-[70vh] overflow-y-auto md:relative md:mt-4 md:rounded-xl md:border md:shadow-none md:max-h-none"
+    }>
       {/* Panel header */}
       <div class="flex items-center justify-between p-3 border-b border-surface-hover sticky top-0 bg-surface-card z-10">
         <div class="flex gap-1 bg-surface rounded-lg p-1">
