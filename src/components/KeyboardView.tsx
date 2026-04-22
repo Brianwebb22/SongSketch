@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import type { Section, SectionType, Chord } from '../db.ts';
 import { MiniKeyboard } from './MiniKeyboard.tsx';
 import { getChordDegree } from '../utils/chordDegrees.ts';
+import type { ComponentChildren } from 'preact';
 
 const SECTION_BORDER_COLORS: Record<SectionType, string> = {
   intro: '#9b7edb',
@@ -31,6 +32,8 @@ interface KeyboardViewProps {
   onAddSection: (type: SectionType) => void;
   onDeleteSection: (sectionId: string) => void;
   songKey: string | null;
+  chordPanelSectionId?: string | null;
+  chordPanel?: ComponentChildren;
 }
 
 export function KeyboardView({
@@ -41,6 +44,8 @@ export function KeyboardView({
   onAddSection,
   onDeleteSection,
   songKey,
+  chordPanelSectionId,
+  chordPanel,
 }: KeyboardViewProps) {
   const sorted = [...sections].sort((a, b) => a.order - b.order);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -123,6 +128,9 @@ export function KeyboardView({
                 + Add
               </button>
             </div>
+
+            {/* Inline chord panel for this section */}
+            {chordPanelSectionId === section.id && chordPanel}
           </div>
         );
       })}

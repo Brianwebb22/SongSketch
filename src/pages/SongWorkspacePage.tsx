@@ -622,32 +622,60 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
           onAddSection={(type) => addSection(type)}
           onDeleteSection={(sectionId) => setDeleteTarget(sectionId)}
           songKey={song.key}
+          chordPanelSectionId={chordPanelOpen ? chordPanelSectionId : null}
+          chordPanel={
+            <ChordInputPanel
+              open={chordPanelOpen}
+              onClose={() => {
+                setChordPanelOpen(false);
+                setEditingChord(null);
+                setChordPanelSectionId(null);
+              }}
+              onAddChord={addChordToSection}
+              editingChord={editingChord}
+              onUpdateChord={updateChordInSection}
+              songKey={song.key}
+              sectionChords={chordPanelSectionId ? (song.sections.find(s => s.id === chordPanelSectionId)?.chords ?? []) : []}
+              sameTypeChords={(() => {
+                if (!chordPanelSectionId) return [];
+                const current = song.sections.find(s => s.id === chordPanelSectionId);
+                if (!current) return [];
+                return song.sections
+                  .filter(s => s.id !== chordPanelSectionId && s.type === current.type)
+                  .flatMap(s => s.chords);
+              })()}
+              allSongChords={song.sections.flatMap(s => s.chords)}
+              inline
+            />
+          }
         />
       )}
 
-      {/* Chord input panel */}
-      <ChordInputPanel
-        open={chordPanelOpen}
-        onClose={() => {
-          setChordPanelOpen(false);
-          setEditingChord(null);
-          setChordPanelSectionId(null);
-        }}
-        onAddChord={addChordToSection}
-        editingChord={editingChord}
-        onUpdateChord={updateChordInSection}
-        songKey={song.key}
-        sectionChords={chordPanelSectionId ? (song.sections.find(s => s.id === chordPanelSectionId)?.chords ?? []) : []}
-        sameTypeChords={(() => {
-          if (!chordPanelSectionId) return [];
-          const current = song.sections.find(s => s.id === chordPanelSectionId);
-          if (!current) return [];
-          return song.sections
-            .filter(s => s.id !== chordPanelSectionId && s.type === current.type)
-            .flatMap(s => s.chords);
-        })()}
-        allSongChords={song.sections.flatMap(s => s.chords)}
-      />
+      {/* Chord input panel (sections view only) */}
+      {view === 'sections' && (
+        <ChordInputPanel
+          open={chordPanelOpen}
+          onClose={() => {
+            setChordPanelOpen(false);
+            setEditingChord(null);
+            setChordPanelSectionId(null);
+          }}
+          onAddChord={addChordToSection}
+          editingChord={editingChord}
+          onUpdateChord={updateChordInSection}
+          songKey={song.key}
+          sectionChords={chordPanelSectionId ? (song.sections.find(s => s.id === chordPanelSectionId)?.chords ?? []) : []}
+          sameTypeChords={(() => {
+            if (!chordPanelSectionId) return [];
+            const current = song.sections.find(s => s.id === chordPanelSectionId);
+            if (!current) return [];
+            return song.sections
+              .filter(s => s.id !== chordPanelSectionId && s.type === current.type)
+              .flatMap(s => s.chords);
+          })()}
+          allSongChords={song.sections.flatMap(s => s.chords)}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <ConfirmDialog
