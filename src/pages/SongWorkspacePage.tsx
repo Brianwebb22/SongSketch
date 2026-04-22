@@ -24,18 +24,8 @@ import { ChordInputPanel } from '../components/ChordInputPanel.tsx';
 import { KeyboardView } from '../components/KeyboardView.tsx';
 import { TapTempo } from '../components/TapTempo.tsx';
 import { AppFooter } from '../components/AppFooter.tsx';
+import { KeySelector } from '../components/KeySelector.tsx';
 import type { Theme } from '../hooks/useTheme.ts';
-
-const KEY_OPTIONS = [
-  'Unknown',
-  'C Major', 'C Minor', 'C# Major', 'C# Minor',
-  'Db Major', 'Db Minor', 'D Major', 'D Minor',
-  'Eb Major', 'Eb Minor', 'E Major', 'E Minor',
-  'F Major', 'F Minor', 'F# Major', 'F# Minor',
-  'Gb Major', 'Gb Minor', 'G Major', 'G Minor',
-  'Ab Major', 'Ab Minor', 'A Major', 'A Minor',
-  'Bb Major', 'Bb Minor', 'B Major', 'B Minor',
-];
 
 // --- Auto-save hook ---
 
@@ -451,20 +441,17 @@ export function SongWorkspacePage({ id, theme, onToggleTheme }: { id: string; th
           aria-label="Song title"
         />
         <div class="flex items-center gap-2 text-sm text-text-secondary">
-          <select
-            value={song.key || 'Unknown'}
-            onChange={(e) => {
-              const val = (e.target as HTMLSelectElement).value;
-              const key = val === 'Unknown' ? null : val;
+          <KeySelector
+            songKey={song.key}
+            onChange={(key) => {
               setSong((prev) => prev ? { ...prev, key } : prev);
               scheduleSave();
             }}
-            class="bg-surface-card text-text-secondary px-2 py-1 rounded text-sm outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-          >
-            {KEY_OPTIONS.map((k) => (
-              <option key={k} value={k}>{k === 'Unknown' ? 'Key' : k}</option>
-            ))}
-          </select>
+            chords={sortedSections.flatMap((s) =>
+              [...s.chords].sort((a, b) => a.order - b.order),
+            )}
+            songId={song.id}
+          />
           <TapTempo
             bpm={song.bpm}
             onBpmChange={(bpm) => {
