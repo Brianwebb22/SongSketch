@@ -278,17 +278,20 @@ export function searchChords(query: string): string[] {
   if (!query.trim()) return [];
   const q = query.trim();
   const dict = getChordDictionary();
-  // Exact prefix matches first, then contains
+  // Exact match first, then prefix matches (shortest first), then contains
+  const exact: string[] = [];
   const prefix: string[] = [];
   const contains: string[] = [];
   const lowerQ = q.toLowerCase();
 
   for (const chord of dict) {
     const lc = chord.toLowerCase();
-    if (lc.startsWith(lowerQ)) prefix.push(chord);
+    if (lc === lowerQ) exact.push(chord);
+    else if (lc.startsWith(lowerQ)) prefix.push(chord);
     else if (lc.includes(lowerQ)) contains.push(chord);
   }
-  return [...prefix.slice(0, 20), ...contains.slice(0, 10)].slice(0, 20);
+  prefix.sort((a, b) => a.length - b.length);
+  return [...exact, ...prefix.slice(0, 20), ...contains.slice(0, 10)].slice(0, 20);
 }
 
 // --- Default voicing generation for Type tab ---
