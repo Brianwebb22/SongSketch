@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { SongListPage } from './pages/SongListPage.tsx';
 import { SongWorkspacePage } from './pages/SongWorkspacePage.tsx';
 import { useTheme } from './hooks/useTheme.ts';
 import { db } from './db.ts';
 import { createSampleSong } from './data/sampleSong.ts';
+import { QuickTools, type QuickTool } from './components/QuickTools.tsx';
+import { ChordFinder } from './components/ChordFinder.tsx';
 
 function getHashRoute(): { path: string; id?: string } {
   const hash = window.location.hash.slice(1) || '/';
@@ -19,6 +21,23 @@ export function navigate(url: string) {
 export function App() {
   const [routeState, setRouteState] = useState(getHashRoute);
   const { theme, toggleTheme } = useTheme();
+  const [chordFinderOpen, setChordFinderOpen] = useState(false);
+
+  const quickTools: QuickTool[] = useMemo(() => [
+    {
+      id: 'chord-finder',
+      label: 'Chord Finder',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="6" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6" />
+          <path d="M8 6v7M12 6v7M16 6v7" stroke="currentColor" stroke-width="1.6" />
+          <rect x="6.5" y="13" width="2.5" height="3.5" fill="currentColor" />
+          <rect x="14.5" y="13" width="2.5" height="3.5" fill="currentColor" />
+        </svg>
+      ),
+      onSelect: () => setChordFinderOpen(true),
+    },
+  ], []);
 
   useEffect(() => {
     const onHashChange = () => setRouteState(getHashRoute());
@@ -46,6 +65,8 @@ export function App() {
       ) : (
         <SongListPage theme={theme} onToggleTheme={toggleTheme} />
       )}
+      <QuickTools tools={quickTools} />
+      <ChordFinder open={chordFinderOpen} onClose={() => setChordFinderOpen(false)} />
     </div>
   );
 }

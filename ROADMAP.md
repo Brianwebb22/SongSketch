@@ -2,6 +2,8 @@
 
 This file tracks all planned features, known issues, and future ideas. It is NOT loaded by Claude Code — reference it in conversations and CC prompts as needed.
 
+**Project philosophy:** SongSketch is built to best suit my own needs as a songwriter — not to be a hit app or make money. Competitive research (see RESEARCH.md) is for ideation and comparison only. When prioritizing, "do I want this when I'm writing songs?" beats "would this compete well?"
+
 ---
 
 ## V1 — Shipped ✓
@@ -24,12 +26,19 @@ This file tracks all planned features, known issues, and future ideas. It is NOT
 
 ---
 
+## In Progress (fab branch)
+
+**Chord Finder quick tool + Guitar mode**
+Standalone Chord Finder (QuickTools panel) with piano/guitar mode switch. Guitar mode: interactive fretboard input (tap frets, open/muted strings) feeding the chord identification engine, plus a curated chord-shape library for search. Fast-follow ideas: capo support, alternate tunings, "same chord on piano ⇄ guitar" toggle, fretboard diagrams in the song workspace.
+
+---
+
 ## V2 Backlog — Prioritized
 
 ### Tier 1: High Priority (Next Up)
 
-**Next chord auto-suggest**
-Rule-based or AI-powered suggestions for what chord to play next, based on current progression, key, and common patterns. Could start simple (common progression lookup) and get smarter.
+**Chord playback** *(promoted from V3; research-inspired)*
+Hear a chord's voicing + bass via WebAudio/Tone.js. We store exact voicings but can't audition them — low effort, high payoff. Stepping stone to full progression playback/metronome (still V3).
 
 **Time signatures**
 Support for 3/4, 6/8, 7/8, etc. Affects section counting, metronome, chord duration display. Needs a `duration` field on the Chord model.
@@ -39,17 +48,17 @@ Chord chart layout like paper — chords above lyrics, sections flowing naturall
 
 ### Tier 2: Important
 
-**Auto-detect song key**
-A "detect" option in the Key Selector that analyzes all chords to infer the most likely key. Frequency analysis of pitch classes + common key signature matching.
-
-**Chord voicing switcher**
-In the Type tab, offer multiple voicing options (root position, inversions, spread voicings, close voicings) to cycle through. Essential to creative exploration.
+**Audio sketches (voice memos)** *(research-inspired)*
+Record/attach audio snippets to a song or section. Ear players think in recordings first — this completes the "lyrics + chords + audio in one place" picture. IndexedDB handles blobs, so it stays offline/no-backend.
 
 **Sharing and exporting**
-PDF chord charts, MIDI files, MusicXML, shareable links, printing support for Sheet view.
+PDF chord charts, MIDI files, MusicXML, shareable links, printing support for Sheet view. Also: local backup/restore (export/import a song file) — the natural answer to "IndexedDB-only" without needing accounts or a backend.
 
 **Song notepad / scratchpad**
 Freeform notes area in song workspace (separate from section notes) for ideas and inspiration. Eventually pull content into sections or vice versa.
+
+**"Chords in this key" palette** *(research-inspired)*
+On the input panel, show diatonic + common borrowed chords for the song key, labeled with Roman numerals — one tap to enter. Builds on the existing degrees + suggest work; gentle guidance, not a generator.
 
 ### Tier 3: Nice to Have
 
@@ -58,9 +67,6 @@ Already have grid + list toggle. Could add more filtering, tags management, batc
 
 **Keyboard view lyric display**
 Better handling of how lyrics appear with mini keyboard chord cards — current truncation may not be ideal.
-
-**Quick tools section**
-A "Tools" tab or floating panel with quick access to chord finder, tap tempo, etc. without needing to be inside a specific song/section.
 
 **Piano minimap**
 Small overview of full 88-key piano above chord selector, showing current viewport and all selected notes across the full range.
@@ -75,14 +81,11 @@ Mic-based chord identification via Web Audio API + pitch detection. Originally s
 **Melody tracking**
 Document melodies alongside chords via piano roll input, audio humming, or simplified notation. Biggest lift on the list — needs Tone.js for playback.
 
-**Metronome / audio playback**
-Tone.js integration for hearing chord progressions and keeping time.
+**Metronome / progression playback**
+Tone.js integration for hearing full chord progressions and keeping time. (Single-chord playback promoted to V2 Tier 1.)
 
 **MIDI input device support**
-Plug in a MIDI keyboard to input chords directly.
-
-**Guitar mode**
-Alternative instrument mode showing chord fingerings on a guitar fretboard diagram instead of/alongside piano keyboard.
+Plug in a MIDI keyboard to input chords directly (Web MIDI).
 
 **Performance view**
 Simplified large text, auto-scrolling at BPM for playing live.
@@ -105,6 +108,8 @@ Organize songs into collections.
 
 - Adjacent note labels on mini-piano in Type tab still overlap in some edge cases — needs a more robust staggering/layout algorithm
 - Chord degrees feature is a good start but needs more work to be truly useful (revisit UX)
+- Guitar shape library coverage is sparse — chord engine knows ~19 qualities but `guitarShapes.ts` covers majors/minors fully and only patchy 7ths/sus/add9 (no 6, 9, 13, dim7, aug, most m7 roots). The "no standard shape" fallback handles it gracefully. Fix by expanding the data, or better: generate movable barre shapes (E/A forms) algorithmically.
+- Enharmonic note spelling ignores chord context — e.g. E major's third displays as "Ab" instead of "G#". `midiToDisplayName` would need chord/key-aware spelling.
 
 ---
 
@@ -115,3 +120,8 @@ Organize songs into collections.
 - ✓ Keyboard view editing — add sections and chords directly from Keyboard view
 - ✓ Song list view toggle — card grid + list/table view with sortable columns
 - ✓ Chord degrees (Roman numerals) — shows harmonic analysis based on song key
+- ✓ Next chord auto-suggest — Suggest tab with contextual chord suggestions in Chord Input Panel (PR #5)
+- ✓ Chord voicing switcher — cycle voicing options in the Search tab (PR #6)
+- ✓ Pre-loaded sample song — House of the Rising Sun for first-run experience (PR #7)
+- ✓ Inline keyboard (PR #8)
+- ✓ Auto-detect song key — inline suggestions in the Key Selector (PR #9)
