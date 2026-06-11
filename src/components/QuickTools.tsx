@@ -273,20 +273,57 @@ export function QuickTools({ tools }: QuickToolsProps) {
           padding: 0,
           touchAction: 'none',
           userSelect: 'none',
-          transition: dragging ? 'none' : 'transform 220ms ease, background-color 180ms ease',
-          transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+          transition: dragging ? 'none' : 'background-color 180ms ease',
           pointerEvents: 'auto',
         }}
       >
-        {/* Plus / sparkle icon — rotates to × when open */}
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 5v14M5 12h14"
-            stroke="currentColor"
-            stroke-width="2.4"
-            stroke-linecap="round"
-          />
-        </svg>
+        {/* Music note crossfades to × when open */}
+        <span style={{ position: 'relative', width: 24, height: 24, display: 'block' }} aria-hidden="true">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: open ? 0 : 1,
+              transform: open ? 'rotate(90deg) scale(0.5)' : 'rotate(0deg) scale(1)',
+              transition: 'opacity 180ms ease, transform 220ms ease',
+            }}
+          >
+            <circle cx="6.5" cy="17.5" r="2.5" fill="currentColor" />
+            <circle cx="17.5" cy="16.5" r="2.5" fill="currentColor" />
+            <path
+              d="M9 17.5V6.2L20 4.8v11.7"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path d="M9 6.4L20 5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+          </svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: open ? 1 : 0,
+              transform: open ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.5)',
+              transition: 'opacity 180ms ease, transform 220ms ease',
+            }}
+          >
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+          </svg>
+        </span>
       </button>
     </div>
   );
