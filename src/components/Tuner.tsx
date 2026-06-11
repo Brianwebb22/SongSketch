@@ -20,10 +20,19 @@ interface Reading {
 const IN_TUNE_CENTS = 5;
 /** Median over this many recent detections. */
 const SMOOTHING_WINDOW = 5;
+/** Keep the last note on screen this long after the signal drops... */
+const HOLD_MS = 2000;
+/** ...then fade it out over this long. Quiet sources (an unplugged
+ * electric) dip below the silence gate between readings — without the
+ * hold, the note flickers in and out. */
+const FADE_MS = 600;
 
 export function Tuner({ open, onClose }: TunerProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [reading, setReading] = useState<Reading | null>(null);
+  // What's actually shown: lags `reading` so the last note holds, then fades
+  const [display, setDisplay] = useState<Reading | null>(null);
+  const [fading, setFading] = useState(false);
   // Bumped by the Retry button to re-run the mic effect
   const [attempt, setAttempt] = useState(0);
 
@@ -50,6 +59,25 @@ export function Tuner({ open, onClose }: TunerProps) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // Hold-then-fade: live readings show immediately; when the signal drops,
+  // keep the last note solid for HOLD_MS, fade over FADE_MS, then clear.
+  useEffect(() => {
+    if (reading) {
+      setDisplay(reading);
+      setFading(false);
+      return;
+    }
+    const fadeTimer = window.setTimeout(() => setFading(true), HOLD_MS);
+    const clearTimer = window.setTimeout(() => {
+      setDisplay(null);
+      setFading(false);
+    }, HOLD_MS + FADE_MS);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(clearTimer);
+    };
+  }, [reading]);
 
   // Microphone lifecycle — start on open, tear down fully on close/unmount
   useEffect(() => {
@@ -122,22 +150,28 @@ export function Tuner({ open, onClose }: TunerProps) {
       audioCtxRef.current = null;
       setStatus('idle');
       setReading(null);
+      // Hooks state survives while closed — don't show a stale note on reopen
+      setDisplay(null);
+      setFading(false);
     };
   }, [open, attempt]);
 
   if (!open) return null;
 
-  const inTune = reading !== null && Math.abs(reading.cents) <= IN_TUNE_CENTS;
+  const inTune = display !== null && Math.abs(display.cents) <= IN_TUNE_CENTS;
 
   // Nearest standard-tuning string to the detected pitch
   const nearestStringIdx =
-    reading === null
+    display === null
       ? null
       : STANDARD_TUNING.reduce(
           (best, midi, i) =>
-            Math.abs(midi - reading.midi) < Math.abs(STANDARD_TUNING[best] - reading.midi) ? i : best,
+            Math.abs(midi - display.midi) < Math.abs(STANDARD_TUNING[best] - display.midi) ? i : best,
           0,
         );
+
+  const fadeClass = `transition-opacity ${fading ? 'opacity-0' : 'opacity-100'}`;
+  const fadeStyle = { transitionDuration: `${fading ? FADE_MS : 150}ms` };
 
   return (
     <div
@@ -184,18 +218,18 @@ export function Tuner({ open, onClose }: TunerProps) {
           {status === 'active' && (
             <>
               {/* Detected note */}
-              <div class="text-center mb-4 min-h-[72px]">
-                {reading ? (
+              <div class={`text-center mb-4 min-h-[72px] ${fadeClass}`} style={fadeStyle}>
+                {display ? (
                   <>
                     <span
                       class={`text-5xl font-bold font-mono ${
                         inTune ? 'text-green-400' : 'text-text-primary'
                       }`}
                     >
-                      {midiToDisplayName(reading.midi)}
+                      {midiToDisplayName(display.midi)}
                     </span>
                     <span class="text-2xl font-mono text-text-muted ml-1">
-                      {Math.floor(reading.midi / 12) - 1}
+                      {Math.floor(display.midi / 12) - 1}
                     </span>
                   </>
                 ) : (
@@ -213,24 +247,29 @@ export function Tuner({ open, onClose }: TunerProps) {
                   style={{ left: `${50 - IN_TUNE_CENTS}%`, width: `${IN_TUNE_CENTS * 2}%` }}
                 />
                 {/* Needle */}
-                {reading && (
+                {display && (
                   <div
-                    class={`absolute top-1 bottom-1 w-1 rounded-full transition-[left] duration-75 ${
-                      inTune ? 'bg-green-400' : 'bg-accent'
-                    }`}
-                    style={{ left: `calc(${50 + Math.max(-50, Math.min(50, reading.cents))}% - 2px)` }}
+                    class={`absolute top-1 bottom-1 w-1 rounded-full transition-[left,opacity] ${
+                      fading ? 'opacity-0' : 'opacity-100'
+                    } ${inTune ? 'bg-green-400' : 'bg-accent'}`}
+                    style={{
+                      left: `calc(${50 + Math.max(-50, Math.min(50, display.cents))}% - 2px)`,
+                      transitionDuration: `75ms, ${fading ? FADE_MS : 150}ms`,
+                    }}
                   />
                 )}
               </div>
               <div class="flex justify-between text-[10px] font-mono text-text-muted mb-3">
                 <span>−50</span>
-                <span>{reading ? `${reading.cents > 0 ? '+' : ''}${reading.cents}¢` : ''}</span>
+                <span class={fadeClass} style={fadeStyle}>
+                  {display ? `${display.cents > 0 ? '+' : ''}${display.cents}¢` : ''}
+                </span>
                 <span>+50</span>
               </div>
 
               {/* Frequency readout */}
-              <div class="text-center text-xs font-mono text-text-muted mb-4 min-h-[16px]">
-                {reading ? `${reading.freq.toFixed(1)} Hz` : 'Play a note...'}
+              <div class={`text-center text-xs font-mono text-text-muted mb-4 min-h-[16px] ${fadeClass}`} style={fadeStyle}>
+                {display ? `${display.freq.toFixed(1)} Hz` : 'Play a note...'}
               </div>
 
               {/* Guitar string hints */}
