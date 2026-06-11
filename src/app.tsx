@@ -6,6 +6,7 @@ import { db } from './db.ts';
 import { createSampleSong } from './data/sampleSong.ts';
 import { QuickTools, type QuickTool } from './components/QuickTools.tsx';
 import { ChordFinder } from './components/ChordFinder.tsx';
+import { Tuner } from './components/Tuner.tsx';
 
 function getHashRoute(): { path: string; id?: string } {
   const hash = window.location.hash.slice(1) || '/';
@@ -22,6 +23,7 @@ export function App() {
   const [routeState, setRouteState] = useState(getHashRoute);
   const { theme, toggleTheme } = useTheme();
   const [chordFinderOpen, setChordFinderOpen] = useState(false);
+  const [tunerOpen, setTunerOpen] = useState(false);
 
   const quickTools: QuickTool[] = useMemo(() => [
     {
@@ -36,6 +38,23 @@ export function App() {
         </svg>
       ),
       onSelect: () => setChordFinderOpen(true),
+    },
+    {
+      id: 'tuner',
+      label: 'Tuner',
+      icon: (
+        // Tuning fork
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M8 3v7a4 4 0 0 0 8 0V3M12 14v7"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+          <path d="M9.5 21h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+      ),
+      onSelect: () => setTunerOpen(true),
     },
   ], []);
 
@@ -67,6 +86,7 @@ export function App() {
       )}
       <QuickTools tools={quickTools} />
       <ChordFinder open={chordFinderOpen} onClose={() => setChordFinderOpen(false)} />
+      <Tuner open={tunerOpen} onClose={() => setTunerOpen(false)} />
     </div>
   );
 }
